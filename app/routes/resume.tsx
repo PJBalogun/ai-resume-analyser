@@ -71,7 +71,7 @@ const Resume = () => {
                     {isLoadingResume ? (
                         <div className="gradient-border animate-pulse max-sm:m-0 h-[90%] max-lg:h-fit w-fit max-lg:w-full">
                             <div 
-                                className="w-full h-full rounded-2xl flex items-center justify-center min-h-[400px] max-lg:min-h-[300px]"
+                                className="w-full h-full rounded-2xl flex items-center justify-center min-h-[600px] max-lg:min-h-[400px] max-sm:min-h-[350px] aspect-[8.5/11] max-lg:aspect-[8.5/11]"
                                 style={{ backgroundColor: 'var(--color-bg-accent)' }}
                             >
                                 <span style={{ color: 'var(--color-text-secondary)' }}>Loading resume...</span>
@@ -82,7 +82,7 @@ const Resume = () => {
                             <a href={resumeUrl} target="_blank" rel="noopener noreferrer">
                                 <img
                                     src={imageUrl}
-                                    className="w-full h-full object-contain rounded-2xl max-lg:max-h-[300px]"
+                                    className="w-full h-full object-contain rounded-2xl max-lg:max-h-[400px] max-sm:max-h-[350px] aspect-[8.5/11]"
                                     title="resume"
                                     loading="lazy"
                                 />
@@ -91,7 +91,7 @@ const Resume = () => {
                     ) : (
                         <div className="gradient-border max-sm:m-0 h-[90%] max-lg:h-fit w-fit max-lg:w-full">
                             <div 
-                                className="w-full h-full rounded-2xl flex items-center justify-center min-h-[400px] max-lg:min-h-[300px]"
+                                className="w-full h-full rounded-2xl flex items-center justify-center min-h-[600px] max-lg:min-h-[400px] max-sm:min-h-[350px] aspect-[8.5/11] max-lg:aspect-[8.5/11]"
                                 style={{ backgroundColor: 'var(--color-bg-accent)' }}
                             >
                                 <span style={{ color: 'var(--color-text-secondary)' }}>Resume not found</span>
@@ -99,7 +99,7 @@ const Resume = () => {
                         </div>
                     )}
                 </section>
-                <section className="feedback-section resume-content-section">
+                <section className="feedback-section resume-content-section !pt-4 max-lg:!pt-8">
                     <h2 className="text-4xl font-bold max-sm:text-3xl mobile-text-wrap" style={{ color: 'var(--color-text-primary)' }}>Resume Review</h2>
                     {feedback ? (
                         <div className="flex flex-col gap-8 animate-in fade-in duration-1000 max-sm:gap-6">

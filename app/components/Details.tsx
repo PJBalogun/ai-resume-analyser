@@ -24,7 +24,7 @@ const ScoreBadge = ({ score }: { score: number }) => {
         <img
             src={score > 69 ? "/icons/check.svg" : "/icons/warning.svg"}
             alt="score"
-            className="w-4 h-4 flex-shrink-0"
+            className="w-4 h-4 flex-shrink-0 sm:max-w-3.5 sm:max-h"
         />
         <p
             className="text-sm font-semibold whitespace-nowrap"
@@ -44,7 +44,7 @@ const CategoryHeader = ({
   categoryScore: number;
 }) => {
   return (
-      <div className="category-header">
+      <div className="flex flex-row gap-3 items-center py-2 max-sm:flex-col max-sm:items-start max-sm:gap-2">
         <p 
           className="text-2xl font-semibold max-sm:text-xl"
           style={{ color: 'var(--color-text-primary)' }}
@@ -97,14 +97,14 @@ const CategoryContent = ({
             return (
               <div
                   key={index + tip.tip}
-                  className="flex flex-col gap-3 rounded-2xl p-4 border-2"
+                  className="flex flex-col gap-2 rounded-2xl p-4 border-2"
                   style={{
                     backgroundColor: tipColors.bg,
                     borderColor: tipColors.border,
                     color: tipColors.text
                   }}
               >
-                <div className="flex flex-row gap-3 items-center">
+                <div className="flex flex-row gap-2 items-center">
                   <img
                       src={
                         tip.type === "good"
@@ -112,11 +112,11 @@ const CategoryContent = ({
                             : "/icons/warning.svg"
                       }
                       alt="score"
-                      className="w-5 h-5 flex-shrink-0"
+                      className="size-5"
                   />
-                  <p className="text-lg font-semibold">{tip.tip}</p>
+                  <p className="text-xl font-semibold">{tip.tip}</p>
                 </div>
-                <p className="text-base leading-relaxed ml-8">{tip.explanation}</p>
+                <p>{tip.explanation}</p>
               </div>
             );
           })}
