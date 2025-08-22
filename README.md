@@ -78,9 +78,9 @@ This is a **completely redesigned and enhanced version** of an AI Resume Analyze
 ### **Installation**
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR-USERNAME/ai-resume-analyzer.git
-cd ai-resume-analyzer
+# Clone the repository  
+git clone https://github.com/PJBalogun/ai-resume-analyser.git
+cd ai-resume-analyser
 
 # Install dependencies
 npm install
