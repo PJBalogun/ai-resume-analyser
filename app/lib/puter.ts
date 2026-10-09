@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { serviceErrorMessage } from './serviceErrors';
 
 declare global {
     interface Window {
@@ -6,7 +7,7 @@ declare global {
             auth: {
                 getUser: () => Promise<PuterUser>;
                 isSignedIn: () => Promise<boolean>;
-                signIn: () => Promise<void>;
+                signIn: (options?: { request_auth?: boolean }) => Promise<unknown>;
                 signOut: () => Promise<void>;
             };
             fs: {
@@ -104,15 +105,6 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         set({
             error: msg,
             isLoading: false,
-            auth: {
-                user: null,
-                isAuthenticated: false,
-                signIn: get().auth.signIn,
-                signOut: get().auth.signOut,
-                refreshUser: get().auth.refreshUser,
-                checkAuthStatus: get().auth.checkAuthStatus,
-                getUser: get().auth.getUser,
-            },
         });
     };
 
@@ -158,8 +150,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                 return false;
             }
         } catch (err) {
-            const msg =
-                err instanceof Error ? err.message : "Failed to check auth status";
+            const msg = serviceErrorMessage(err, 'Unable to check your Puter session. Please try signing in again.');
             setError(msg);
             return false;
         }
@@ -175,10 +166,14 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         set({ isLoading: true, error: null });
 
         try {
-            await puter.auth.signIn();
-            await checkAuthStatus();
+            // Keep this call before any await so the popup retains the click's user activation.
+            await puter.auth.signIn({ request_auth: true });
+            const authenticated = await checkAuthStatus();
+            if (!authenticated && !get().error) {
+                setError('Puter did not return a signed-in session. Please complete the sign-in window and try again.');
+            }
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Sign in failed";
+            const msg = serviceErrorMessage(err, 'Sign-in failed without an error description. Please try again in Chrome or Edge.');
             setError(msg);
         }
     };
@@ -207,7 +202,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                 isLoading: false,
             });
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Sign out failed";
+            const msg = serviceErrorMessage(err, 'Unable to sign out. Please try again.');
             setError(msg);
         }
     };
@@ -236,7 +231,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                 isLoading: false,
             });
         } catch (err) {
-            const msg = err instanceof Error ? err.message : "Failed to refresh user";
+            const msg = serviceErrorMessage(err, 'Unable to refresh your Puter session. Please try signing in again.');
             setError(msg);
         }
     };
@@ -350,7 +345,7 @@ export const usePuterStore = create<PuterStore>((set, get) => {
                     ],
                 },
             ],
-            { model: "claude-3-7-sonnet" }
+            { model: 'claude-sonnet-4-6', normalize: true, stream: false, max_tokens: 8192 }
         ) as Promise<AIResponse | undefined>;
     };
 

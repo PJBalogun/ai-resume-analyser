@@ -1,25 +1,24 @@
 export interface PdfConversionResult {
-    imageUrl: string;
     file: File | null;
     error?: string;
 }
 
 let pdfjsLib: any = null;
-let isLoading = false;
 let loadPromise: Promise<any> | null = null;
 
 async function loadPdfJs(): Promise<any> {
     if (pdfjsLib) return pdfjsLib;
     if (loadPromise) return loadPromise;
 
-    isLoading = true;
     // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
     loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
         // Set the worker source to use local file
         lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
         pdfjsLib = lib;
-        isLoading = false;
         return lib;
+    }).catch((error) => {
+        loadPromise = null;
+        throw error;
     });
 
     return loadPromise;
@@ -28,11 +27,12 @@ async function loadPdfJs(): Promise<any> {
 export async function convertPdfToImage(
     file: File
 ): Promise<PdfConversionResult> {
+    let pdf: any = null;
     try {
         const lib = await loadPdfJs();
 
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
+        pdf = await lib.getDocument({ data: arrayBuffer }).promise;
         const page = await pdf.getPage(1);
 
         // Use scale 2 instead of 4 for better performance while maintaining good quality
@@ -43,14 +43,13 @@ export async function convertPdfToImage(
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
-        if (context) {
-            context.imageSmoothingEnabled = true;
-            context.imageSmoothingQuality = "high";
-        }
+        if (!context) throw new Error('Unable to create a canvas for the PDF preview.');
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = "high";
 
         await page.render({ canvasContext: context!, viewport }).promise;
 
-        return new Promise((resolve) => {
+        return await new Promise<PdfConversionResult>((resolve) => {
             canvas.toBlob(
                 (blob) => {
                     if (blob) {
@@ -61,12 +60,10 @@ export async function convertPdfToImage(
                         });
 
                         resolve({
-                            imageUrl: URL.createObjectURL(blob),
                             file: imageFile,
                         });
                     } else {
                         resolve({
-                            imageUrl: "",
                             file: null,
                             error: "Failed to create image blob",
                         });
@@ -78,9 +75,12 @@ export async function convertPdfToImage(
         });
     } catch (err) {
         return {
-            imageUrl: "",
             file: null,
             error: `Failed to convert PDF: ${err}`,
         };
+    } finally {
+        if (pdf) {
+            try { await pdf.destroy(); } catch { /* Cleanup must not prevent a successful preview or retry. */ }
+        }
     }
 }

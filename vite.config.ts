@@ -5,4 +5,14 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    // Prebundle route dependencies together so lazy routes do not replace React bundles mid-session.
+    include: [
+      "react", "react-dom/client", "react/jsx-runtime", "react/jsx-dev-runtime",
+      "react-router", "react-router/dom", "zustand", "react-dropzone", "clsx", "tailwind-merge",
+    ],
+  },
 });

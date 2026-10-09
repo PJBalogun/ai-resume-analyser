@@ -1,10 +1,13 @@
-import {Link, useNavigate, useParams} from "react-router";
+import {Link, useParams} from "react-router";
 import type { MetaFunction } from "react-router";
 import {useEffect, useState} from "react";
 import {usePuterStore} from "~/lib/puter";
 import Summary from "~/components/Summary";
 import ATS from "~/components/ATS";
 import Details from "~/components/Details";
+import JobMatchBreakdown from '~/components/JobMatchBreakdown';
+import { useAuthGuard } from '~/lib/useAuthGuard';
+import { parseResume } from '~/lib/feedback';
 
 export const meta: MetaFunction = () => [
     { title: 'ResumeAI Pro | Review' },
@@ -12,51 +15,66 @@ export const meta: MetaFunction = () => [
 ];
 
 const Resume = () => {
-    const { auth, isLoading, fs, kv } = usePuterStore();
+    const { auth, fs, kv, error: sdkError } = usePuterStore();
     const { id } = useParams();
     const [imageUrl, setImageUrl] = useState('');
     const [resumeUrl, setResumeUrl] = useState('');
     const [feedback, setFeedback] = useState<Feedback | null>(null);
+    const [resumeData, setResumeData] = useState<Resume | null>(null);
     const [isLoadingResume, setIsLoadingResume] = useState(true);
-    const navigate = useNavigate();
+    const ready = useAuthGuard(`/resume/${id}`);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        if(!isLoading && !auth.isAuthenticated) navigate(`/auth?next=/resume/${id}`);
-    }, [isLoading])
-
-    useEffect(() => {
+        let active = true;
+        const urls: string[] = [];
+        setImageUrl('');
+        setResumeUrl('');
+        setFeedback(null);
+        setResumeData(null);
+        setError('');
+        setIsLoadingResume(true);
+        if (!ready) return;
         const loadResume = async () => {
             try {
                 setIsLoadingResume(true);
                 const resume = await kv.get(`resume:${id}`);
 
-                if(!resume) return;
+                if(!resume) throw new Error('Resume not found.');
 
-                const data = JSON.parse(resume);
+                const data = parseResume(resume);
 
                 const resumeBlob = await fs.read(data.resumePath);
-                if(!resumeBlob) return;
+                if(!resumeBlob) throw new Error('Unable to read the resume PDF.');
+                if (!active) return;
 
                 const pdfBlob = new Blob([resumeBlob], { type: 'application/pdf' });
                 const resumeUrl = URL.createObjectURL(pdfBlob);
+                urls.push(resumeUrl);
                 setResumeUrl(resumeUrl);
 
                 const imageBlob = await fs.read(data.imagePath);
-                if(!imageBlob) return;
+                if(!imageBlob) throw new Error('Unable to read the resume preview.');
+                if (!active) return;
                 const imageUrl = URL.createObjectURL(imageBlob);
+                urls.push(imageUrl);
                 setImageUrl(imageUrl);
 
                 setFeedback(data.feedback);
-                console.log({resumeUrl, imageUrl, feedback: data.feedback });
+                setResumeData(data);
             } catch (error) {
-                console.error('Error loading resume:', error);
+                if (active) setError(error instanceof Error ? error.message : 'Unable to load resume.');
             } finally {
-                setIsLoadingResume(false);
+                if (active) setIsLoadingResume(false);
             }
         }
 
         loadResume();
-    }, [id]);
+        return () => {
+            active = false;
+            urls.forEach((url) => URL.revokeObjectURL(url));
+        };
+    }, [id, ready, fs, kv, auth.user?.uuid]);
 
     return (
         <main className="!pt-0">
@@ -101,15 +119,16 @@ const Resume = () => {
                 </section>
                 <section className="feedback-section resume-content-section !pt-4 max-lg:!pt-8">
                     <h2 className="text-4xl font-bold max-sm:text-3xl mobile-text-wrap" style={{ color: 'var(--color-text-primary)' }}>Resume Review</h2>
-                    {feedback ? (
+                    {error || sdkError ? <p role="alert">{error || sdkError}</p> : feedback ? (
                         <div className="flex flex-col gap-8 animate-in fade-in duration-1000 max-sm:gap-6">
                             <Summary feedback={feedback} />
+                            <JobMatchBreakdown match={feedback.jobMatch} jobTitle={resumeData?.jobTitle} hasDescription={Boolean(resumeData?.jobDescription?.trim())} />
                             <ATS score={feedback.ATS.score || 0} suggestions={feedback.ATS.tips || []} />
                             <Details feedback={feedback} />
                         </div>
-                    ) : (
-                        <img src="/images/resume-scan-2.gif" className="w-full" />
-                    )}
+                    ) : isLoadingResume ? (
+                        <div className="processing-indicator" role="status"><span className="loading-spinner" /> Loading your feedback…</div>
+                    ) : <p>No analysis available. Please upload your resume again.</p>}
                 </section>
             </div>
         </main>

@@ -9,22 +9,30 @@ const ResumeCard = ({ resume: { id, companyName, jobTitle, feedback, imagePath }
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let active = true;
+        let objectUrl = '';
+        setResumeUrl('');
         const loadResume = async () => {
             try {
                 setIsLoading(true);
                 const blob = await fs.read(imagePath);
-                if(!blob) return;
+                if(!blob || !active) return;
                 let url = URL.createObjectURL(blob);
+                objectUrl = url;
                 setResumeUrl(url);
             } catch (error) {
                 console.error('Error loading resume image:', error);
             } finally {
-                setIsLoading(false);
+                if (active) setIsLoading(false);
             }
         }
 
         loadResume();
-    }, [imagePath]);
+        return () => {
+            active = false;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [imagePath, fs]);
 
     return (
         <Link to={`/resume/${id}`} className="resume-card animate-in fade-in duration-1000">

@@ -1,19 +1,19 @@
-import {Link} from "react-router";
+import {Link, NavLink} from "react-router";
 import {usePuterStore} from "~/lib/puter";
 import ThemeToggle from "~/components/ThemeToggle";
+import Brand from './Brand';
 
 const Navbar = () => {
     const { auth } = usePuterStore();
     
     return (
         <nav className="navbar">
-            <Link to="/">
-                <p className="text-2xl font-bold text-gradient">ResumeAI Pro</p>
-            </Link>
-            <div className="flex items-center gap-4">
+            <Brand />
+            <div className="nav-actions">
+                <NavLink to="/" end className="nav-link">My resumes</NavLink>
                 <ThemeToggle />
                 <Link to="/upload" className="primary-button w-fit">
-                    Upload Resume
+                    <span aria-hidden="true">＋</span> Upload resume
                 </Link>
                 {auth.isAuthenticated && (
                     <button onClick={auth.signOut} className="logout-button">
